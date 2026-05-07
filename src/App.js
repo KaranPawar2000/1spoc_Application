@@ -1,8 +1,12 @@
 import React, { useState } from "react";
 import "./App.css";
+import { saveFlowApi } from "./api";
 
 function App() {
+
   const [steps, setSteps] = useState([]);
+
+  // ================= ADD STEP =================
 
   const addStep = () => {
     setSteps([
@@ -18,73 +22,142 @@ function App() {
     ]);
   };
 
+  // ================= UPDATE STEP =================
+
   const updateStep = (index, field, value) => {
+
     const updated = [...steps];
+
     updated[index][field] = value;
+
     setSteps(updated);
   };
 
-  const addOption = (index) => {
+  // ================= DELETE STEP =================
+
+  const deleteStep = (index) => {
+
     const updated = [...steps];
-    updated[index].options.push({
+
+    updated.splice(index, 1);
+
+    setSteps(updated);
+  };
+
+  // ================= ADD OPTION =================
+
+  const addOption = (stepIndex) => {
+
+    const updated = [...steps];
+
+    updated[stepIndex].options.push({
       id: "",
       label: "",
       nextStep: ""
     });
+
     setSteps(updated);
   };
+
+  // ================= UPDATE OPTION =================
 
   const updateOption = (stepIndex, optIndex, field, value) => {
+
     const updated = [...steps];
+
     updated[stepIndex].options[optIndex][field] = value;
+
     setSteps(updated);
   };
 
+  // ================= DELETE OPTION =================
+
+  const deleteOption = (stepIndex, optIndex) => {
+
+    const updated = [...steps];
+
+    updated[stepIndex].options.splice(optIndex, 1);
+
+    setSteps(updated);
+  };
+
+  // ================= SAVE FLOW =================
+
   const saveFlow = async () => {
+
     if (!steps.length) {
-      alert("Add at least one step");
+      alert("Please add at least one step");
       return;
     }
 
     try {
-      // 🔥 Clean data before sending
+
+      // Remove frontend ids
       const cleanedSteps = steps.map(({ id, ...rest }) => ({
         ...rest,
-        options: rest.options?.length ? rest.options : null
+        options:
+          rest.options && rest.options.length > 0
+            ? rest.options
+            : null
       }));
 
-      const response = await fetch("http://localhost:8080/api/flow/save", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(cleanedSteps)
-      });
+      const response = await saveFlowApi(cleanedSteps);
 
-      const data = await response.text();
-      alert(data);
+      alert(response);
 
     } catch (error) {
+
       console.error(error);
+
       alert("Error saving flow ❌");
     }
   };
 
   return (
     <div className="container">
+
       <h1>WhatsApp Flow Builder 🚀</h1>
 
-      <button onClick={addStep}>+ Add Step</button>
+      <button className="add-btn" onClick={addStep}>
+        + Add Step
+      </button>
 
       {steps.map((step, index) => (
+
         <div key={step.id} className="card">
+
+          <div className="header">
+
+            <h3>Step {index + 1}</h3>
+
+            <button
+              className="delete-btn"
+              onClick={() => deleteStep(index)}
+            >
+              Delete
+            </button>
+
+          </div>
+
+          {/* STEP KEY */}
+
+          <label>Step Key</label>
+
           <input
-            placeholder="Step Key (START)"
+            placeholder="START"
             value={step.stepKey}
             onChange={(e) =>
-              updateStep(index, "stepKey", e.target.value.toUpperCase())
+              updateStep(
+                index,
+                "stepKey",
+                e.target.value.toUpperCase()
+              )
             }
           />
+
+          {/* TYPE */}
+
+          <label>Type</label>
 
           <select
             value={step.type}
@@ -92,70 +165,152 @@ function App() {
               updateStep(index, "type", e.target.value)
             }
           >
-            <option value="TEXT">Text</option>
-            <option value="INPUT">Input</option>
-            <option value="BUTTON">Button</option>
-            <option value="LIST">List</option>
+            <option value="TEXT">TEXT</option>
+            <option value="INPUT">INPUT</option>
+            <option value="BUTTON">BUTTON</option>
+            <option value="LIST">LIST</option>
           </select>
 
+          {/* MESSAGE */}
+
+          <label>Message</label>
+
           <textarea
-            placeholder="Message"
+            rows="4"
+            placeholder="Enter message"
             value={step.message}
             onChange={(e) =>
               updateStep(index, "message", e.target.value)
             }
           />
 
-          {(step.type === "BUTTON" || step.type === "LIST") && (
-            <div className="options">
-              <h4>Options</h4>
+          {/* OPTIONS */}
 
-              {step.options.map((opt, i) => (
-                <div key={i} className="option-row">
+          {(step.type === "BUTTON" ||
+            step.type === "LIST") && (
+
+            <div className="options">
+
+              <div className="option-header">
+
+                <h4>Options</h4>
+
+                <button
+                  className="small-btn"
+                  onClick={() => addOption(index)}
+                >
+                  + Add Option
+                </button>
+
+              </div>
+
+              {step.options.map((opt, optIndex) => (
+
+                <div
+                  key={optIndex}
+                  className="option-card"
+                >
+
                   <input
-                    placeholder="ID (REGISTER)"
+                    placeholder="Option ID"
                     value={opt.id}
                     onChange={(e) =>
-                      updateOption(index, i, "id", e.target.value.toUpperCase())
+                      updateOption(
+                        index,
+                        optIndex,
+                        "id",
+                        e.target.value.toUpperCase()
+                      )
                     }
                   />
+
                   <input
                     placeholder="Label"
                     value={opt.label}
                     onChange={(e) =>
-                      updateOption(index, i, "label", e.target.value)
+                      updateOption(
+                        index,
+                        optIndex,
+                        "label",
+                        e.target.value
+                      )
                     }
                   />
+
                   <input
                     placeholder="Next Step"
                     value={opt.nextStep}
                     onChange={(e) =>
-                      updateOption(index, i, "nextStep", e.target.value.toUpperCase())
+                      updateOption(
+                        index,
+                        optIndex,
+                        "nextStep",
+                        e.target.value.toUpperCase()
+                      )
                     }
                   />
+
+                  <button
+                    className="delete-option"
+                    onClick={() =>
+                      deleteOption(index, optIndex)
+                    }
+                  >
+                    X
+                  </button>
+
                 </div>
               ))}
-
-              <button onClick={() => addOption(index)}>
-                + Add Option
-              </button>
             </div>
           )}
 
-          <input
-            placeholder="Next Step"
-            value={step.nextStep}
-            onChange={(e) =>
-              updateStep(index, "nextStep", e.target.value.toUpperCase())
-            }
-          />
+          {/* NEXT STEP */}
+
+          {(step.type === "TEXT" ||
+            step.type === "INPUT") && (
+
+            <>
+              <label>Next Step</label>
+
+              <input
+                placeholder="NEXT_STEP"
+                value={step.nextStep}
+                onChange={(e) =>
+                  updateStep(
+                    index,
+                    "nextStep",
+                    e.target.value.toUpperCase()
+                  )
+                }
+              />
+            </>
+          )}
+
         </div>
       ))}
 
       {steps.length > 0 && (
-        <button className="save-btn" onClick={saveFlow}>
+        <button
+          className="save-btn"
+          onClick={saveFlow}
+        >
           Save Flow 💾
         </button>
+      )}
+
+      {/* FLOW PREVIEW */}
+
+      {steps.length > 0 && (
+
+        <div className="preview">
+
+          <h2>Flow JSON Preview</h2>
+
+          <pre>
+            {JSON.stringify(steps, null, 2)}
+          </pre>
+
+        </div>
       )}
     </div>
   );
